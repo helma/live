@@ -5,11 +5,12 @@ require 'ruby-osc'
 dir = File.expand_path(File.read(File.join(File.dirname(__FILE__),"..",".current","dir")).chomp)
 scenes_file = File.join dir, "scenes.json"
 client = OSC::Client.new 9669
-files = JSON.parse(File.read(scenes_file))[ARGV[0].to_i]
-#puts JSON.pretty_generate files
-files.reverse.each_with_index do |f,i|
-  p i
+scenes = JSON.parse(File.read(scenes_file))[ARGV[0].to_i]
+scenes.each_with_index do |f,i|
   client.send OSC::Message.new("/#{i}/read" ,f)
-  #`oscsend localhost 9669 /#{i}/read s "#{f}"`
-  p "oscsend localhost 9669 /#{i}/read s '#{f}'"
 end
+scenes.each_with_index do |f,i|
+  path = File.join(File.dirname(__FILE__),"..",".current",i.to_s)
+  File.open(path,"w+"){|file| file.puts f}
+end
+puts `#{File.join(File.dirname(__FILE__),"status.rb")}`
