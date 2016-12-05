@@ -22,24 +22,45 @@
 8
   clear; ~/music/src/ruby/scene.rb 7
 
+control + {1-9}
+  clear; ~/music/src/ruby/save-scene.rb {1-9}
+
 space
   oscsend localhost 9669 /restart
 
-F1
-  clear; ~/music/src/ruby/select-track.rb 0
+z
+  oscsend localhost 9669 /0/mute
   
-F2
-  clear; ~/music/src/ruby/select-track.rb 1
+@z
+  oscsend localhost 9669 /0/unmute
+
+x
+  oscsend localhost 9669 /1/mute
   
-F3
-  clear; ~/music/src/ruby/select-track.rb 2
+@x
+  oscsend localhost 9669 /1/unmute
+
+c
+  oscsend localhost 9669 /2/mute
   
-F4
-  clear; ~/music/src/ruby/select-track.rb 3
+@c
+  oscsend localhost 9669 /2/unmute
+
+v
+  oscsend localhost 9669 /3/mute
+  
+@v
+  oscsend localhost 9669 /3/unmute
   
 Up
-  clear; ~/music/src/ruby/prev.rb
+  clear; ~/music/src/ruby/prev-sample.rb
 
 Down
-  clear; ~/music/src/ruby/next.rb
+  clear; ~/music/src/ruby/next-sample.rb
+  
+Left
+  clear; ~/music/src/ruby/prev-track.rb
+
+Right
+  clear; ~/music/src/ruby/next-track.rb
 

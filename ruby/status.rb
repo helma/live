@@ -13,9 +13,9 @@ scenes.each_with_index do |s,i|
     if s[j] 
       name = File.basename(s[j])
       path = File.join(File.dirname(__FILE__),"..",".current",j.to_s)
-      name = name.center(30) 
+      name = name.ljust(30) 
       name = name.yellow if j == cur_track
-      name = name.green if s[j] == File.read(path).chomp
+      name = name.green if i == File.read(path).chomp.to_i
       str += name#.center(30) 
     else
       str += " "*30
