@@ -64,3 +64,11 @@ Left
 Right
   clear; ~/music/src/ruby/next-track.rb
 
+comma
+  oscsend localhost 9669 /bwd
+
+period
+  oscsend localhost 9669 /fwd
+
+Delete
+  ~/music/src/ruby/delete.rb

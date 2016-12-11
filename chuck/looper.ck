@@ -37,10 +37,10 @@ public class Looper {
 
   fun void read(string f) {
     f => file;
-    <<< file >>>;
-    Clock.next_bar();
+    Clock.bar => now;
     disconnect();
     file => buffer.read;
+    0 => buffer.phaseOffset;
     0 => buffer.pos;
     connect();
   }
@@ -55,14 +55,19 @@ public class Looper {
       oin => now;
       while ( oin.recv(msg) != 0 ) { 
         if (msg.address == "/"+chan+"/read") { spork ~ read(msg.getString(0)); }
-        else if (msg.address == "/start") { 1 => buffer.play; }
-        else if (msg.address == "/stop") { 0 => buffer.play; }
-        else if (msg.address == "/"+chan+"/restart" || msg.address == "/restart") { 0 => buffer.pos; }
-        else if (msg.address == "/"+chan+"/mute") { disconnect(); }
-        else if (msg.address == "/"+chan+"/unmute") { connect(); }
-        else {
-          // print
+        else if (msg.address == "/restart") {
+          0 => buffer.phaseOffset;
+          0 => buffer.pos;
         }
+        else if (msg.address == "/"+chan+"/offset") {
+          msg.getInt(0)*Clock.bardur()/8/buffer.length() => buffer.phaseOffset;
+        }
+        else if (msg.address == "/reset") {
+          Clock.bar => now;
+          0 => buffer.phaseOffset;
+          0 => buffer.pos;
+        }
+        else if (msg.address == "/rate") { Clock.pulse => now; msg.getFloat(0) => buffer.rate; }
       }
     }
   }
