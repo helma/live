@@ -7,5 +7,11 @@ class Loop
     l.offset = 0
     l
   end
+  def delete
+    metadata = @file.sub "wav","meta"
+    del_dir = File.join(File.dirname(@file),"delete")
+    `trash #{metadata}`
+    `trash #{@file}`
+  end
 end
 

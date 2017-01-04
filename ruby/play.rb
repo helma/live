@@ -14,7 +14,6 @@ require_relative 'loop.rb'
 @offsets = [0,0,0,0]
 
 def status 
-  # grid
   (0..3).each do |track|
     (0..7).each do |scene|
       if @scenes[track][scene]
@@ -36,14 +35,10 @@ def status
         @midiout.puts(144,track*16+scene,12)
       end
       if @offsets[track] == scene
-        #puts
-        #p [@current[track].file, @current[track].offset, scene]
         @midiout.puts(144,(track+4)*16+scene,15)
       else
         @midiout.puts(144,(track+4)*16+scene,12)
       end
-        #@scenes[track][scene].offset == scene ? @midiout.puts(144,(track+4)*16+scene,15) : @midiout.puts(144,(track+4)*16+scene,12)
-      #@current[track] and @current[track].offset == scene ? @midiout.puts(144,(track+4)*16+scene,15) : @midiout.puts(144,(track+4)*16+scene,12)
     end
   end
 end
@@ -54,8 +49,8 @@ at_exit do
   `killall jackd`
 end
 
-#jack = spawn "jackd -d alsa -P hw:0 -r 44100 "
-jack = spawn "jackd -d alsa -P hw:2 -r 44100 "
+jack = spawn "jackd -d alsa -P hw:0 -r 44100 "
+#jack = spawn "jackd -d alsa -P hw:2 -r 44100 "
 Process.detach jack
 sleep 1
 #chuck = spawn "chuck $HOME/music/src/chuck/clock.ck $HOME/music/src/chuck/looper.ck $HOME/music/src/chuck/arrange.ck "
@@ -96,7 +91,6 @@ while true do
       (0..3).each do |track|
         @oscclient.send OSC::Message.new("/#{track}/read", @scenes[track][scene].file)
         @offsets[track] = 0
-        #@scenes[track][scene].offset = 0
         @current[track] = @scenes[track][scene]
       end
     end

@@ -6,13 +6,10 @@ require 'yaml'
 
 class Sample 
 
-  attr_reader :file, :dir, :channels, :samplerate, :seconds, :frames, :max_amplitude, :slices, :stat, :bpm, :tags
-  attr_accessor :bpm, :mfcc
+  attr_accessor :file, :bpm, :mfcc, :dir, :channels, :samplerate, :seconds, :frames, :max_amplitude, :slices, :stat, :bpm, :tags
 
   def initialize file
-    #metadata = file.sub "wav","yaml"
     metadata = file.sub "wav","meta"
-    #p metadata
     @file = file
     @dir = File.dirname(@file)
     @stat = Hash[`sox "#{@file}" -n stat 2>&1|sed '/Try/,$d'`.split("\n")[0..14].collect{|l| l.split(":").collect{|i| i.strip}}]
@@ -29,16 +26,17 @@ class Sample
       @tags = ["music"]
     end
     @bars = bars
-    #File.open(metadata,"w+"){|f| YAML.dump self, f}
+    save
+  end
+
+  def save
+    metadata = @file.sub "wav","meta"
     File.open(metadata,"w+"){|f| Marshal.dump self, f}
   end
 
   def self.from_file file
-    #metadata = file.sub "wav","yaml"
     metadata = file.sub "wav","meta"
-    #p metadata
     if File.exists? metadata
-      #File.open(metadata){|f| return YAML.load f}
       File.open(metadata){|f| return Marshal.load f}
     else
       Sample.new(file)

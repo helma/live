@@ -68,6 +68,7 @@ public class Looper {
           0 => buffer.pos;
         }
         else if (msg.address == "/rate") { Clock.pulse => now; msg.getFloat(0) => buffer.rate; }
+        else if (msg.address == "/"+chan+"/mute") { disconnect(); }
       }
     }
   }
