@@ -67,6 +67,7 @@ def status
       end
     end
     @bank == row ? @midiout.puts(144,row*16+8,60) : @midiout.puts(144,row*16+8,12) # bank A-D
+    @mutes[row] ?  @midiout.puts(144,(row+4)*16+8,15) : @midiout.puts(144,(row+4)*16+8,12) # mutes E-H
   end
   # pool
   (4..7).each do |row|
@@ -104,12 +105,12 @@ def save_scene i
 end
 
 def play_scene row, col
-  @scenes[row][col] ? @oscclient.send(OSC::Message.new("/#{row}/read", @scenes[row][col].file)) : @oscclient.send(OSC::Message.new("/#{row}/mute"))
+  @scenes[row][col] and !@mutes[col] ? @oscclient.send(OSC::Message.new("/#{row}/read", @scenes[row][col].file)) : @oscclient.send(OSC::Message.new("/#{row}/mute"))
   @current[row] = @scenes[row][col]
 end
 
 def play_pool row, col
-  @pool[row][col] ? @oscclient.send(OSC::Message.new("/#{row}/read", @pool[row][col].file)) : @oscclient.send(OSC::Message.new("/#{row}/mute"))
+  @pool[row][col] and !@mutes[col] ? @oscclient.send(OSC::Message.new("/#{row}/read", @pool[row][col].file)) : @oscclient.send(OSC::Message.new("/#{row}/mute"))
   @current[row] = @pool[row][col]
 end
 
@@ -156,13 +157,14 @@ while true do
             end
           end
         end
-      elsif col == 8 # A-H
+      elsif col == 8 and d[2] == 127 # A-H press
+      #else
         if row < 4 # A-D choose bank
           @bank = row
-        else # E-F mute track
+        elsif row < 8 # E-F mute track
           row -= 4
-          @mutes[row] ? @mutes[row] == false : @mutes[row] == true
-          #@mutes[row] ? @oscclient.send(OSC::Message.new("/#{row}/mute"))
+          @mutes[row] ? @mutes[row] = false : @mutes[row] = true
+          @mutes[row] ? @oscclient.send(OSC::Message.new("/#{row}/mute")) : @oscclient.send(OSC::Message.new("/#{row}/unmute"))
         end
       end
     elsif d[0] == 176 # 1-8 scenes
