@@ -40,20 +40,23 @@ end
 @pool[3] += @pool[2]
 
 @current = [nil,nil,nil,nil]
+@mutes = [false,false,false,false]
+@bank = 0
 
 def status 
   # scenes
   (0..3).each do |row|
     (0..7).each do |col|
-      if @scenes[row][col]
-        if @current[row] == @scenes[row][col]
-          if @scenes[row][col].bars.round <= 16
-            @midiout.puts(144,row*16+col,28)
+      c = 8*@bank + col
+      if @scenes[row][c]
+        if @current[row] == @scenes[row][c] # playing
+          if @scenes[row][c].bars.round <= 16
+            @midiout.puts(144,row*16+col,28) # dimmed green
           else
-            @midiout.puts(144,row*16+col,60)
+            @midiout.puts(144,row*16+col,60) # bright green
           end
         else
-          if @scenes[row][col].bars.round <= 16
+          if @scenes[row][c].bars.round <= 16
             @midiout.puts(144,row*16+col,29)
           else
             @midiout.puts(144,row*16+col,63)
@@ -63,6 +66,7 @@ def status
         @midiout.puts(144,row*16+col,12)
       end
     end
+    @bank == row ? @midiout.puts(144,row*16+8,60) : @midiout.puts(144,row*16+8,12) # bank A-D
   end
   # pool
   (4..7).each do |row|
@@ -99,13 +103,23 @@ def save_scene i
   File.open(ARGV[0],"w+"){|f| Marshal.dump @scenes, f}
 end
 
+def play_scene row, col
+  @scenes[row][col] ? @oscclient.send(OSC::Message.new("/#{row}/read", @scenes[row][col].file)) : @oscclient.send(OSC::Message.new("/#{row}/mute"))
+  @current[row] = @scenes[row][col]
+end
+
+def play_pool row, col
+  @pool[row][col] ? @oscclient.send(OSC::Message.new("/#{row}/read", @pool[row][col].file)) : @oscclient.send(OSC::Message.new("/#{row}/mute"))
+  @current[row] = @pool[row][col]
+end
+
 at_exit do
   `killall chuck`
   @midiout.puts(176,0,0)
   `killall jackd`
 end
 
-jack = spawn "jackd -d alsa -P hw:2 -r 44100 "
+jack = spawn "jackd -d alsa -P hw:PCH -r 44100 "
 Process.detach jack
 sleep 1
 chuck = spawn "chuck $HOME/music/src/chuck/clock.ck $HOME/music/src/chuck/looper.ck $HOME/music/src/chuck/arrange.ck "
@@ -123,14 +137,13 @@ while true do
           @del_time = Time.now
         elsif d[2] == 0 # release
           if row < 4 # scenes
+            c = 8*@bank + col
             if Time.now - @del_time > 1 # long press
-              @scenes[row][col].delete # delete
-              @scenes[row][col] = nil
+              @scenes[row][c].delete # delete
+              @scenes[row][c] = nil
               @oscclient.send OSC::Message.new("/#{row}/mute") # stop playback
             else # short press
-              # play
-              @oscclient.send OSC::Message.new("/#{row}/read", @scenes[row][col].file) if @scenes[row][col] and @scenes[row][col].file
-              @current[row] = @scenes[row][col]
+              play_scene row, c
             end
           elsif row < 8 # pool
             row -= 4
@@ -139,33 +152,29 @@ while true do
               @pool[row].delete_at col
               @oscclient.send OSC::Message.new("/#{row}/mute") # stop playback
             else # short press
-              # play
-              @oscclient.send OSC::Message.new("/#{row}/read", @pool[row][col].file) if @pool[row][col] and @pool[row][col].file
-              @current[row] = @pool[row][col]
+              play_pool row, col
             end
           end
         end
       elsif col == 8 # A-H
-        if row == 0 # A
-        elsif row == 1 # B
-        elsif row == 2 # C
-        elsif row == 3 # D
-        elsif row == 4 # E
-        elsif row == 5 # F
-        elsif row == 6 # G
-        elsif row == 7 # H
+        if row < 4 # A-D choose bank
+          @bank = row
+        else # E-F mute track
+          row -= 4
+          @mutes[row] ? @mutes[row] == false : @mutes[row] == true
+          #@mutes[row] ? @oscclient.send(OSC::Message.new("/#{row}/mute"))
         end
       end
     elsif d[0] == 176 # 1-8 scenes
       col = d[1] - 104
+      c = 8*@bank + col
       if d[2] == 127 # press
         @save_time = Time.now
         if @last_scene # move scene
           (0..3).each do |row|
             src = @scenes[row].delete_at @last_scene
-            @scenes[row].insert col, src
-            @oscclient.send OSC::Message.new("/#{row}/read", @scenes[row][col].file) if @scenes[row][col]
-            @current[row] = @scenes[row][col]
+            @scenes[row].insert c, src
+            play_scene row, c
           end
           @last_scene = nil
         else
@@ -173,14 +182,9 @@ while true do
         end
       elsif d[2] == 0 # release
         if Time.now - @save_time > 1
-          save_scene col
+          save_scene c
         else
-          if @last_scene
-            (0..3).each do |row|
-              @oscclient.send OSC::Message.new("/#{row}/read", @scenes[row][col].file) if @scenes[row][col]
-              @current[row] = @scenes[row][col]
-            end
-          end
+          (0..3).each { |row| play_scene row, c } if @last_scene
         end
         @last_scene = nil
       end
