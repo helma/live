@@ -1,7 +1,0 @@
-#!/usr/bin/sh
-chuck --channels:8 $HOME/music/src/chuck/clock.ck $HOME/music/src/chuck/looper.ck $HOME/music/src/chuck/multichannel.ck &
-mkdir -p $HOME/music/src/.current
-echo $1 > $HOME/music/src/.current/dir
-sxhkd -c $HOME/music/src/sxhkd/arrange.sxhkdrc
-#oscsend localhost 9669 /start
-#$HOME/music/src/ruby/scene.rb 0

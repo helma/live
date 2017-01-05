@@ -5,6 +5,21 @@ require 'ruby-osc'
 require_relative 'sample.rb'
 require_relative 'loop.rb'
 
+@devices = ["USBStreamer","CODEC","PCH"]
+
+@devices.each do |d|
+  if `aplay -l |grep card`.match(d)
+    jack = spawn "jackd -d alsa -P hw:#{d} -r 44100"
+    Process.detach jack
+    sleep 1
+    multichannel = 0
+    multichannel = 1 if d == "USBStreamer" 
+    chuck = spawn "chuck $HOME/music/src/chuck/clock.ck $HOME/music/src/chuck/looper.ck $HOME/music/src/chuck/main.ck:#{multichannel} "
+    Process.detach chuck
+    break
+  end
+end
+
 @bpm = ARGV[0].match(/\d\d\d/).to_s.to_f
 @midiin = UniMIDI::Input.find{ |device| device.name.match(/Launchpad/) }.open
 @midiout = UniMIDI::Output.find{ |device| device.name.match(/Launchpad/) }.open
@@ -120,13 +135,7 @@ at_exit do
   `killall jackd`
 end
 
-jack = spawn "jackd -d alsa -P hw:PCH -r 44100 "
-Process.detach jack
-sleep 1
-chuck = spawn "chuck $HOME/music/src/chuck/clock.ck $HOME/music/src/chuck/looper.ck $HOME/music/src/chuck/arrange.ck "
-Process.detach chuck
 status
-
 while true do
   @midiin.gets.each do |m|
     d = m[:data]

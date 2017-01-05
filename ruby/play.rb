@@ -14,30 +14,29 @@ require_relative 'loop.rb'
 @offsets = [0,0,0,0]
 
 def status 
-  (0..3).each do |track|
-    (0..7).each do |scene|
-      if @scenes[track][scene]
-        if @current[track] == @scenes[track][scene]
-          if @scenes[track][scene].bars.round <= 16
-            @midiout.puts(144,track*16+scene,28)
+  (0..3).each do |row|
+    (0..7).each do |col|
+      if @scenes[row][col]
+        if @current[row] == @scenes[row][col]
+          if @scenes[row][col].bars.round <= 16
+            @midiout.puts(144,row*16+col,28)
           else
-            @midiout.puts(144,track*16+scene,60)
+            @midiout.puts(144,row*16+col,60)
           end
         else
-          if @scenes[track][scene].bars.round <= 16
-            @midiout.puts(144,track*16+scene,29)
+          if @scenes[row][col].bars.round <= 16
+            @midiout.puts(144,row*16+col,29)
           else
-            @midiout.puts(144,track*16+scene,63)
+            @midiout.puts(144,row*16+col,63)
           end
         end
-
       else
-        @midiout.puts(144,track*16+scene,12)
+        @midiout.puts(144,row*16+col,12)
       end
-      if @offsets[track] == scene
-        @midiout.puts(144,(track+4)*16+scene,15)
+      if @offsets[row] == col
+        @midiout.puts(144,(row+4)*16+col,15)
       else
-        @midiout.puts(144,(track+4)*16+scene,12)
+        @midiout.puts(144,(row+4)*16+col,12)
       end
     end
   end
@@ -61,37 +60,37 @@ status
 while true do
   @midiin.gets.each do |m|
     d = m[:data]
-    sample = d[1] % 16
-    track = d[1] / 16
+    col = d[1] % 16
+    row = d[1] / 16
     if d[0] == 144 and d[2] == 127
-      if track < 4 and sample < 8 # grid
-        @oscclient.send OSC::Message.new("/#{track}/read", @scenes[track][sample].file)
-        @offsets[track] = 0
-        @current[track] = @scenes[track][sample]
-      elsif track < 8 and sample < 8 # offsets
-        track -= 4
-        @oscclient.send OSC::Message.new("/#{track}/offset", sample)
-        @offsets[track] = sample
-      elsif track == 4 and sample == 8 # E
+      if row < 4 and col < 8 # grid
+        @oscclient.send OSC::Message.new("/#{row}/read", @scenes[row][col].file)
+        @offsets[row] = 0
+        @current[row] = @scenes[row][col]
+      elsif row < 8 and col < 8 # offsets
+        row -= 4
+        @oscclient.send OSC::Message.new("/#{row}/offset", col)
+        @offsets[row] = col
+      elsif row == 4 and col == 8 # E
         @oscclient.send OSC::Message.new("/rate", 1.04) # speedup
-      elsif track == 5 and sample == 8 # F
+      elsif row == 5 and col == 8 # F
         @oscclient.send OSC::Message.new("/rate", 0.96) # slowdown
-      elsif track == 6 and sample == 8 # G
+      elsif row == 6 and col == 8 # G
         @oscclient.send OSC::Message.new("/reset")
         (0..3).each{|t| @offsets[t] = 0 }
-      elsif track == 7 and sample == 8 # H
+      elsif row == 7 and col == 8 # H
         @oscclient.send OSC::Message.new("/restart")
-        @offsets[track] = 0
+        @offsets[row] = 0
         (0..3).each{|t| @offsets[t] = 0 }
       end
-    elsif d[0] == 144 and d[2] == 0 and sample == 8 and (track == 4 or track == 5)
+    elsif d[0] == 144 and d[2] == 0 and col == 8 and (row == 4 or row == 5)
         @oscclient.send OSC::Message.new("/rate", 1.0) # reset
     elsif d[0] == 176 # 1-8
       scene = d[1] - 104
-      (0..3).each do |track|
-        @oscclient.send OSC::Message.new("/#{track}/read", @scenes[track][scene].file)
-        @offsets[track] = 0
-        @current[track] = @scenes[track][scene]
+      (0..3).each do |row|
+        @oscclient.send OSC::Message.new("/#{row}/read", @scenes[row][scene].file)
+        @offsets[row] = 0
+        @current[row] = @scenes[row][scene]
       end
     end
     status
