@@ -1,29 +1,6 @@
 #!/usr/bin/env ruby
-require 'json'
-require "unimidi"
-require 'ruby-osc'
+require_relative 'setup.rb'
 require_relative 'sample.rb'
-require_relative 'loop.rb'
-
-@devices = ["USBStreamer","CODEC","PCH"]
-
-@devices.each do |d|
-  if `aplay -l |grep card`.match(d)
-    jack = spawn "jackd -d alsa -P hw:#{d} -r 44100"
-    Process.detach jack
-    sleep 1
-    multichannel = 0
-    multichannel = 1 if d == "USBStreamer" 
-    chuck = spawn "chuck $HOME/music/src/chuck/clock.ck $HOME/music/src/chuck/looper.ck $HOME/music/src/chuck/main.ck:#{multichannel} "
-    Process.detach chuck
-    break
-  end
-end
-
-@bpm = ARGV[0].match(/\d\d\d/).to_s.to_f
-@midiin = UniMIDI::Input.find{ |device| device.name.match(/Launchpad/) }.open
-@midiout = UniMIDI::Output.find{ |device| device.name.match(/Launchpad/) }.open
-@oscclient = OSC::Client.new 9669
 
 if File.exists? ARGV[0]
   @scenes = File.open(ARGV[0]){|f| Marshal.load(f)}
@@ -54,9 +31,7 @@ end
 @pool[2] += @pool[3]
 @pool[3] += @pool[2]
 
-@current = [nil,nil,nil,nil]
 @mutes = [false,false,false,false]
-@bank = 0
 
 def status 
   # scenes
@@ -127,12 +102,6 @@ end
 def play_pool row, col
   @pool[row][col] and !@mutes[col] ? @oscclient.send(OSC::Message.new("/#{row}/read", @pool[row][col].file)) : @oscclient.send(OSC::Message.new("/#{row}/mute"))
   @current[row] = @pool[row][col]
-end
-
-at_exit do
-  `killall chuck`
-  @midiout.puts(176,0,0)
-  `killall jackd`
 end
 
 status
