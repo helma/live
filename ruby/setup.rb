@@ -14,9 +14,9 @@ require_relative 'loop.rb'
     multichannel = 0
     multichannel = 1 if d == "USBStreamer" or d == "UDAC8"
     if multichannel == 1
-      chuck = spawn "chuck --channels:8 $HOME/music/src/chuck/clock.ck $HOME/music/src/chuck/looper.ck $HOME/music/src/chuck/main.ck:#{multichannel} "
+      chuck = spawn "chuck --channels:8 $HOME/music/src/chuck/clock.ck $HOME/music/src/chuck/clock-send.ck $HOME/music/src/chuck/looper.ck $HOME/music/src/chuck/main.ck:#{multichannel} "
     else
-      chuck = spawn "chuck $HOME/music/src/chuck/clock.ck $HOME/music/src/chuck/looper.ck $HOME/music/src/chuck/main.ck:#{multichannel} "
+      chuck = spawn "chuck $HOME/music/src/chuck/clock.ck $HOME/music/src/chuck/clock-send.ck $HOME/music/src/chuck/looper.ck $HOME/music/src/chuck/main.ck:#{multichannel} "
       
     end
     Process.detach chuck

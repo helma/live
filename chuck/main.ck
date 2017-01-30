@@ -9,5 +9,7 @@ for (0 => int i; i < 4; i++) {
   l.init(i,multichannel);
   spork ~ l.osc();
 }
+//ClockSend ext;
+//spork ~ ext.run(c.bpm,1);
 
 while(true) { minute => now; }
