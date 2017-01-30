@@ -6,10 +6,11 @@ require 'yaml'
 
 class Sample 
 
-  attr_accessor :file, :bpm, :mfcc, :dir, :channels, :samplerate, :seconds, :frames, :max_amplitude, :slices, :stat, :bpm, :tags
+  attr_accessor :file, :name, :bpm, :mfcc, :dir, :channels, :samplerate, :seconds, :frames, :max_amplitude, :slices, :stat, :bpm, :tags, :onsets
 
   def initialize file
-    metadata = file.sub "wav","meta"
+    @name = File.basename(file)
+
     @file = file
     @dir = File.dirname(@file)
     @stat = Hash[`sox "#{@file}" -n stat 2>&1|sed '/Try/,$d'`.split("\n")[0..14].collect{|l| l.split(":").collect{|i| i.strip}}]
@@ -29,27 +30,51 @@ class Sample
     save
   end
 
+  def name
+    File.basename @file
+  end
+
+  #def file
+    #File.join(File.
+  #end
+
   def save
-    metadata = @file.sub "wav","meta"
+    ext = File.extname file
+    metadata = file.sub ext,".meta"
     File.open(metadata,"w+"){|f| Marshal.dump self, f}
   end
 
+  def delete
+    puts `trash "#{@file}"`
+  end
+
   def self.from_file file
-    metadata = file.sub "wav","meta"
-    if File.exists? metadata
+    ext = File.extname file
+    metadata = file.sub ext,".meta"
+    if File.exists? metadata and File.mtime(metadata) > File.mtime(file)
       File.open(metadata){|f| return Marshal.load f}
     else
       Sample.new(file)
     end
   end
 
-  def play
-    `play #{@file} 2>&1 >/dev/null`
+  #def play
+    #puts `aplay -Dhw:1,0 "#{@file}"`
+    #puts `play #{@file} 2>&1 >/dev/null`
+    #puts `play #{@file}`
+  #end
+
+  def png
+    ext = File.extname @file
+    img = file.sub ext,".png"
+    unless File.exists? img and File.mtime(img) > File.mtime(@file)
+      `ffmpeg -i "#{@file}" -filter_complex "showwavespic=s=1918x1078:split_channels=1:colors=white[a];color=s=1918x1078:color=black[b];[b][a]overlay"  -frames:v 1 "#{img}"`
+    end
+    img
   end
 
-  def show
-    pid = fork {`sox #{@file} /tmp/gnuplot.dat; gnuplot -e "title='#{@file}'; set term X11" -p ./plot`}
-    Process.detach pid
+  def display
+    `w3m #{png}`
   end
 
   def backup 
@@ -59,10 +84,6 @@ class Sample
     FileUtils.mkdir_p bakdir
     FileUtils.cp @file, bakfile
     bakfile
-  end
-
-  def name
-    File.basename(@file)
   end
 
   def md5
@@ -84,12 +105,15 @@ class Sample
 
   def normalize
     unless normalized?
+      puts "normalizing #{@file}"
       `sox -G --norm "#{backup}" "#{@file}"`
       @stat = Hash[`sox "#{@file}" -n stat 2>&1|sed '/Try/,$d'`.split("\n")[0..14].collect{|l| l.split(":").collect{|i| i.strip}}]
       @max_amplitude = [@stat["Maximum amplitude"].to_f,stat["Minimum amplitude"].to_f.abs].max
+      save
     end
   end
 
+=begin
   def zerocrossings
     snd = RubyAudio::Sound.open @file
     snd.seek 0
@@ -100,23 +124,13 @@ class Sample
     end
     puts i
   end
+=end
 
   def similarity sample # cosine
     last = [@mfcc.size, sample.mfcc.size].min - 1
     v1 = Vector.elements(@mfcc[0..last])
     v2 = Vector.elements(sample.mfcc[0..last])
-    #p v1.angle_with(v2)/Math::PI
-    #p v1.inner_product(v2)/(v1.magnitude*v2.magnitude)
-    #puts
-    
     v1.inner_product(v2)/(v1.magnitude*v2.magnitude)
-
-    #begin
-    #rescue
-      #puts $!
-      #p self.name, sample.name
-      #0
-    #end
   end
 
 end

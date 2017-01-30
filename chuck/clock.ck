@@ -45,4 +45,25 @@ public class Clock {
   }
 
 }
+/*
+MidiOut mout; 
+MidiMsg msg; 
 
+// check if port is open 
+if( !mout.open( 0 ) ) me.exit(); 
+
+// fill the message with data 
+47 => msg.data1; 
+100 => msg.data2; 
+100 => msg.data3; 
+
+// bugs after this point can be sent 
+// to the manufacturer of your synth 
+
+while( true ) 
+{ 
+    mout.send( msg ); 
+    // allow 2 seconds to pass 
+    2::second => now; 
+}
+*/

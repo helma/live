@@ -1,12 +1,18 @@
 #!/usr/bin/env ruby
-#require_relative 'setup.rb'
-require 'json'
-require_relative 'loop.rb'
+require_relative 'setup.rb'
 
-@scenes = File.open(ARGV[0]){|f| Marshal.load(f)}
-puts @scenes.collect{|r| r.collect{|l| File.basename l.file}}.to_json
-#@scenes = JSON.parse File.read(ARGV[0])
-#p @scenes
+@dir = ARGV[0]
+@scenes = JSON.parse(File.read(File.join(@dir,"scenes.json"))).collect{|row| row.collect{|f| file = File.join(@dir,f); File.exists?(file) ? file : nil}}
+@bars = @scenes.collect do |row| 
+  row.collect do |f|
+    if f
+      ext = File.extname f
+      json_file = f.sub ext, ".json"
+      JSON.parse(File.read(json_file))["bars"]
+    end
+  end
+end
+
 @offsets = [0,0,0,0]
 
 def status 
@@ -14,13 +20,13 @@ def status
     (0..7).each do |col|
       if @scenes[row][col]
         if @current[row] == @scenes[row][col]
-          if @scenes[row][col].bars.round <= 16
+          if @bars[row][col].round <= 16
             @midiout.puts(144,row*16+col,28)
           else
             @midiout.puts(144,row*16+col,60)
           end
         else
-          if @scenes[row][col].bars.round <= 16
+          if @bars[row][col].round <= 16
             @midiout.puts(144,row*16+col,29)
           else
             @midiout.puts(144,row*16+col,63)
@@ -38,7 +44,6 @@ def status
   end
 end
 
-
 status
 
 while true do
@@ -48,7 +53,7 @@ while true do
     row = d[1] / 16
     if d[0] == 144 and d[2] == 127
       if row < 4 and col < 8 # grid
-        @oscclient.send OSC::Message.new("/#{row}/read", @scenes[row][col].file)
+        @oscclient.send OSC::Message.new("/#{row}/read", @scenes[row][col])
         @offsets[row] = 0
         @current[row] = @scenes[row][col]
       elsif row < 8 and col < 8 # offsets
@@ -72,7 +77,7 @@ while true do
     elsif d[0] == 176 # 1-8
       scene = d[1] - 104
       (0..3).each do |row|
-        @oscclient.send OSC::Message.new("/#{row}/read", @scenes[row][scene].file)
+        @oscclient.send OSC::Message.new("/#{row}/read", @scenes[row][scene])
         @offsets[row] = 0
         @current[row] = @scenes[row][scene]
       end
