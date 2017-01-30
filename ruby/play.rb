@@ -1,13 +1,14 @@
 #!/usr/bin/env ruby
-#require_relative 'setup.rb'
+require_relative 'setup.rb'
 require 'json'
-require_relative 'loop.rb'
+#require_relative 'loop.rb'
 
 @scenes = File.open(ARGV[0]){|f| Marshal.load(f)}
 puts @scenes.collect{|r| r.collect{|l| File.basename l.file}}.to_json
 #@scenes = JSON.parse File.read(ARGV[0])
 #p @scenes
 @offsets = [0,0,0,0]
+@current = [nil,nil,nil,nil]
 
 def status 
   (0..3).each do |row|
